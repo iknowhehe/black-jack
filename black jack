@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Game</title>
+    <style>
+        /* Your existing CSS code here */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #2e3a59;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #1c1c1c;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            width: 60px;
+            height: 90px;
+            font-size: 18px;
+            line-height: 70px;
+            color: #333;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #card-display {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        #bet-input {
+            padding: 10px;
+            width: 120px;
+            margin-top: 20px;
+        }
+
+        #bet-button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        #bet-button:hover {
+            background-color: #2980b9;
+        }
+
+        #balance {
+            margin-bottom: 20px;
+        }
+
+        #bank-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        #bank-button:hover {
+            background-color: #2980b9;
+        }
+
+        #bank-container {
+            display: none;
+            background-color: #1c1c1c;
+            padding: 30px;
+            width: 400px;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        #deposit-input, #withdraw-input {
+            width: 150px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        #deposit-button, #withdraw-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        #deposit-button:hover, #withdraw-button:hover {
+            background-color: #45a049;
+        }
+
+        #back-to-game {
+            padding: 15px 30px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        #back-to-game:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Game Container -->
+<div id="game-container">
+    <h1>Blackjack</h1>
+    <p id="balance">Balance: $<span id="player-balance">1000</span></p>
+    <div id="card-display"></div>
+    <div>
+        <input type="number" id="bet-input" placeholder="Place your bet">
+        <button id="bet-button">Place Bet</button>
+    </div>
+    <div>
+        <button id="hit-button">Hit</button>
+        <button id="stand-button">Stand</button>
+        <button id="fold-button">Fold</button>
+    </div>
+    <div>
+        <button id="bank-button">Go to Bank</button>
+    </div>
+</div>
+
+<!-- Bank Container -->
+<div id="bank-container">
+    <h1>Bank</h1>
+    <p>Your Bank Balance: $<span id="bank-balance">0</span></p>
+    <div>
+        <input type="number" id="deposit-input" placeholder="Deposit Amount" min="1">
+        <button id="deposit-button">Deposit</button>
+    </div>
+    <div>
+        <input type="number" id="withdraw-input" placeholder="Withdraw Amount" min="1">
+        <button id="withdraw-button">Withdraw</button>
+    </div>
+    <button id="back-to-game">Back to Game</button>
+</div>
+
+<script>
+    // Global Variables
+    let playerBalance = localStorage.getItem('playerBalance') ? parseInt(localStorage.getItem('playerBalance')) : 1000;
+    let bankBalance = localStorage.getItem('bankBalance') ? parseInt(localStorage.getItem('bankBalance')) : 0;
+    let currentBet = 0;
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let gameStarted = false;
+
+    // Load balance displays
+    const updateBalanceDisplay = () => {
+        document.getElementById('player-balance').textContent = playerBalance;
+        document.getElementById('bank-balance').textContent = bankBalance;
+        localStorage.setItem('playerBalance', playerBalance);
+        localStorage.setItem('bankBalance', bankBalance);
+    };
+
+    // Shuffle deck
+    const shuffleDeck = () => {
+        deck = [];
+        const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+        for (let suit of suits) {
+            for (let value of values) {
+                deck.push({ value, suit });
+            }
+        }
+
+        deck = deck.sort(() => Math.random() - 0.5);
+    };
+
+    // Deal card to player or dealer
+    const dealCard = (hand) => {
+        hand.push(deck.pop());
+    };
+
+    // Get card value
+    const getCardValue = (card) => {
+        if (card.value === 'A') return 11;
+        if (['J', 'Q', 'K'].includes(card.value)) return 10;
+        return parseInt(card.value);
+    };
+
+    // Calculate hand value
+    const calculateHandValue = (hand) => {
+        let value = hand.reduce((sum, card) => sum + getCardValue(card), 0);
+        let aceCount = hand.filter(card => card.value === 'A').length;
+
+        while (value > 21 && aceCount) {
+            value -= 10;
+            aceCount--;
+        }
+
+        return value;
+    };
+
+    // Display cards
+    const displayCards = () => {
+        const playerCardsContainer = document.getElementById('card-display');
+        playerCardsContainer.innerHTML = '';
+        playerHand.forEach(card => {
+            const cardElement = document.createElement('div');
+            cardElement.classList.add('card');
+            cardElement.innerHTML = `${card.value} <br> ${card.suit}`;
+            playerCardsContainer.appendChild(cardElement);
+        });
+    };
+
+    // Start game
+    const startGame = () => {
+        gameStarted = true;
+        playerHand = [];
+        dealerHand = [];
+        shuffleDeck();
+        dealCard(playerHand);
+        dealCard(dealerHand);
+        dealCard(playerHand);
+        dealCard(dealerHand);
+        displayCards();
+    };
+
+    // End game and refresh page after 0.1 second
+    const endGame = () => {
+        gameStarted = false;
+        setTimeout(function() {
+            location.reload(); // Refresh the page after 0.1 second
+        }, 100); // 0.1 second delay
+    };
+
+    // Event Listeners
+    document.getElementById('bet-button').addEventListener('click', () => {
+        const betInput = document.getElementById('bet-input').value;
+        if (betInput >= 1 && betInput <= playerBalance) {
+            currentBet = parseInt(betInput);
+            startGame();
+        } else {
+            alert("Invalid bet amount.");
+        }
+    });
+
+    document.getElementById('hit-button').addEventListener('click', () => {
+        dealCard(playerHand);
+        displayCards();
+        if (calculateHandValue(playerHand) > 21) {
+            alert("You bust! You lose.");
+            playerBalance -= currentBet;
+            updateBalanceDisplay();
+            endGame();
+        }
+    });
+
+    document.getElementById('stand-button').addEventListener('click', () => {
+        const dealerValue = calculateHandValue(dealerHand);
+        const playerValue = calculateHandValue(playerHand);
+
+        // Simulate dealer behavior
+        while (dealerValue < 17) {
+            dealCard(dealerHand);
+        }
+
+        if (playerValue > 21) {
+            alert("You bust! You lose.");
+            playerBalance -= currentBet;
+        } else if (dealerValue > 21 || playerValue > dealerValue) {
+            alert("You win!");
+            playerBalance += currentBet;
+        } else if (playerValue === dealerValue) {
+            alert("It's a tie.");
+        } else {
+            alert("Dealer wins.");
+            playerBalance -= currentBet;
+        }
+
+        updateBalanceDisplay();
+        endGame();
+    });
+
+    document.getElementById('fold-button').addEventListener('click', () => {
+        alert("You folded.");
+        playerBalance -= currentBet;
+        updateBalanceDisplay();
+        endGame();
+    });
+
+    // Bank system
+    document.getElementById('bank-button').addEventListener('click', () => {
+        document.getElementById('game-container').style.display = 'none';
+        document.getElementById('bank-container').style.display = 'block';
+    });
+
+    document.getElementById('back-to-game').addEventListener('click', () => {
+        document.getElementById('game-container').style.display = 'block';
+        document.getElementById('bank-container').style.display = 'none';
+    });
+
+    document.getElementById('deposit-button').addEventListener('click', () => {
+        const depositAmount = parseInt(document.getElementById('deposit-input').value);
+        if (depositAmount <= playerBalance && depositAmount > 0) {
+            bankBalance += depositAmount;
+            playerBalance -= depositAmount;
+            updateBalanceDisplay();
+        } else {
+            alert("Invalid deposit amount.");
+        }
+    });
+
+    document.getElementById('withdraw-button').addEventListener('click', () => {
+        const withdrawAmount = parseInt(document.getElementById('withdraw-input').value);
+        if (withdrawAmount <= bankBalance && withdrawAmount > 0) {
+            bankBalance -= withdrawAmount;
+            playerBalance += withdrawAmount;
+            updateBalanceDisplay();
+        } else {
+            alert("Invalid withdraw amount.");
+        }
+    });
+
+    // Interest system
+    setInterval(() => {
+        if (bankBalance > 0) {
+            bankBalance *= 1.01;
+            updateBalanceDisplay();
+        }
+    }, 1000); // Every 1 second
+</script>
+
+</body>
+</html>
